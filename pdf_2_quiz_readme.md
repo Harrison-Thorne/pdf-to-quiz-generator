@@ -23,7 +23,7 @@ project_root/
 ├── pic2jsonl_output/        # 🧾 第三步 AI 输出的 JSONL 题目数据
 ├── final_excel_output/      # 📊 第四步合并输出的 Excel 文件
 │
-├── extract_pdf2img.py       # Step 1: 提取 PDF 图片与 caption
+├── extract_pdf2img.py       # Step 1: 提取 PDF 图片与 caption 可选择excessive和inadequate两个版本尝试
 ├── figTo4bgImg.py           # Step 2: 生成每图的上下文页合集
 ├── autointerface_build_jsonl.py  # Step 3: 调用 API 生成题目 JSONL
 └── jsonl_to_xlsx.py         # Step 4: 汇总所有 JSONL 为 Excel
@@ -35,19 +35,79 @@ project_root/
 
 ### 🥇 Step 1: 提取 PDF 图片
 
+## Excessive 版
+
+### 🌟 项目简介
+本版本对应脚本 **`1.extract_pdf2img_excessive.py`**，实现了更激进的图像提取策略：
+* **矢量元素聚类** ：合并直线、矩形与曲线，识别图表/表格区块。
+* **四方向 Caption 搜索** ：在图上下左右动态窗口中智能抽取标题文字。
+* **正文块过滤** ：结合文本密度与边缘强度，自动跳过纯文字截图。
+* **多重去重** ：基于 *pHash* 与阈值列表，避免保存相似图片。
+
+与原流水线其它步骤（`figTo4bgImg.py` 等）保持兼容，只需在 *Step 1* 使用本脚本。
+
 ```bash
-python extract_pdf2img.py
+python 1.extract_pdf2img_excessive.py
 ```
+> 注意：由于识别更激进，**输出图片数量可能显著增多**，建议后续步骤结合人工抽样验证。
 
-从 `pdf/` 文件夹提取图像到 `raw_img/`，自动识别图号（Fig/Table）和标题，并过滤小图或重复图。
+#### 关键参数
+| 参数 | 作用 | 默认值 |
+|---|---|---|
+| `MIN_IMG_WIDTH` / `MIN_IMG_HEIGHT` | 最小图片尺寸过滤 | 200 / 100 |
+| `HASH_THRESHOLD` | pHash 去重阈值 | 5 |
+| `HASH_FUNC` | 哈希算法 | `imagehash.phash` |
+| `SEARCH_MARGIN` | Caption 搜索基础窗口 (px) | 30 |
+| `LINE_GAP_STOP` | 行距终止阈值 (px) | 18 |
+| `WORD_JOIN_GAP` | 行内词拼接间隔 (px) | 6 |
+| `CAPTION_MIN_LEN` | Caption 最短长度 | 8 |
+| `MERGE_DIST` | 矢量元素合并距离 (px) | 12 |
+| `MIN_GRAPHIC_W` / `MIN_GRAPHIC_H` | 图/表判定最小宽高 | 120 / 80 |
+| `CHART_LINE_MIN` | 折线/坐标轴线段阈值 | 6 |
+| `BAR_RECT_MIN` | 柱状图矩形阈值 | 3 |
+| `GRID_HV_MIN` | 表格网格线阈值 (H,V) | (3,3) |
 
-**主要参数** | **作用** | **默认值**
----|---|---
-`MIN_IMG_WIDTH` / `MIN_IMG_HEIGHT` | 最小图片尺寸过滤 | 300 / 200
-`HASH_THRESHOLD` | 去重相似度阈值（越小越严格） | 5
-`HASH_FUNC` | 哈希算法（可选 `ahash` / `dhash` / `phash` 等） | `imagehash.phash`
+> 其余未列出参数保持与脚本默认一致。
 
-📁 输出：`raw_img/{pdf_name}/` 下保存各页图像与描述。
+#### 输出
+- 图片路径：`raw_img/{pdf_name}/*.png`
+- 辅助 JSON：`raw_img/{pdf_name}/{pdf_name}.json` – 保存 page / caption / context 等信息。
+
+### 📈 适用场景
+- 需要最大化覆盖论文中所有图表、表格、示意图；
+- 允许后续筛选冗余或误检；
+- 确保 Caption 抽取率高。
+
+---
+
+## Inadequate 版
+
+### 🌟 项目简介
+本版本对应脚本 **`1.extract_pdf2img_Inadequate.py`**，实现了最简提取流程：
+* 仅处理 PDF 中嵌入的 **栅格图像**；
+* Caption 仅在图片下方一行内简单匹配；
+* 去重策略只比较与上一张保留图片的 *pHash*。
+
+速度快、依赖少，但可能漏掉矢量绘制的表格/图表。
+
+```bash
+python 1.extract_pdf2img_Inadequate.py
+```
+> 若仅需快速 Demo 或对精度要求不高，可选用本脚本。
+
+#### 关键参数
+| 参数 | 作用 | 默认值 |
+|---|---|---|
+| `MIN_IMG_WIDTH` / `MIN_IMG_HEIGHT` | 最小图片尺寸过滤 | 200 / 100 |
+| `HASH_THRESHOLD` | pHash 去重阈值 | 5 |
+| `HASH_FUNC` | 哈希算法 | `imagehash.phash` |
+
+其余步骤算法沿用旧版 README。若需处理图表/表格，请改用 *Excessive* 版本。
+
+### 🚧 局限
+- 无法识别纯矢量绘制的曲线或表格；
+- Caption 抽取仅支持英文 "Fig / Table" 开头格式；
+- 仅与上一张图片比较，无法检测隔页重复。
 
 ---
 

@@ -165,7 +165,7 @@ def call_gpt_with_images(
         f"page={context_fields.get('page','')}\n"
         f"originID={context_fields.get('originID','')}\n"
         f"pic={context_fields.get('pic','')}\n"
-        f"请基于图片内容出题，避免超纲或图片外知识。"
+        f"Please create questions based on the content of the image, avoiding topics beyond the scope or external knowledge not depicted in the image."
     )
 
     payload = {

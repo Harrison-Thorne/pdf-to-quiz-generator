@@ -14,8 +14,8 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 # ========== 可配置参数 ==========
 # 1) 尺寸过滤：像素过小则舍弃
-MIN_IMG_WIDTH = 300   # px
-MIN_IMG_HEIGHT = 200  # px
+MIN_IMG_WIDTH = 200   # px
+MIN_IMG_HEIGHT = 100  # px
 
 # 2) 图片去重：感知哈希距离阈值（0~64，越小越相似）。
 #    当当前图片与已保留的上一张图片 phash 距离 <= HASH_THRESHOLD 时，视为近似重复并舍弃。
